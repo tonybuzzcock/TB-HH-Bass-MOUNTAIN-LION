@@ -61,14 +61,17 @@ namespace
         double brkF, brkQ, brkDb;                    // breakup
         double dipF, dipQ, dipDb;                    // upper-mid dip
         double lpF;                                  // top-end roll-off
+        double shelfF, shelfDb;                      // low-end weight (asked for after the first test)
     };
     const CabSpec kCabs[2] = {
         // 1x15: deep, slow top, rolls off early
         { 5.6, 1.4e-3, 12.0, 45.0, 4.0, 0.50,
-          80.0, 0.9, 3.5,   700.0, 1.0, 1.5,   1300.0, 1.4, 4.0,   2400.0, 1.2, -4.0,   3000.0 },
+          80.0, 0.9, 3.5,   700.0, 1.0, 1.5,   1300.0, 1.4, 4.0,   2400.0, 1.2, -4.0,   3000.0,
+          100.0, 6.0 },
         // 4x10: tighter low end, more upper mids and attack
         { 6.0, 0.45e-3, 18.0, 68.0, 3.0, 0.60,
-          110.0, 1.0, 2.5,   900.0, 0.9, 2.0,   2600.0, 1.3, 5.0,   4200.0, 1.5, -3.0,   5200.0 }
+          110.0, 1.0, 2.5,   900.0, 0.9, 2.0,   2600.0, 1.3, 5.0,   4200.0, 1.5, -3.0,   5200.0,
+          110.0, 9.0 }
     };
 
     inline double clamp01 (double x) { return x < 0.0 ? 0.0 : (x > 1.0 ? 1.0 : x); }
@@ -261,12 +264,16 @@ void BassAmp::prepare (double sr)
         const double lpF = fsBase * 0.45 < k.lpF ? fsBase * 0.45 : k.lpF;
         s.cab[4].setLowPass (fsBase, lpF, 0.7);
         s.cab[5].setLowPass (fsBase, lpF * 1.2, 1.0);
+        // Extra weight from about 40 to 100 Hz, asked for after the first test (the
+        // drawing's values leave the bottom end lean). Below ~35 Hz the cab still
+        // rolls off like a real speaker: weight, not modern sub bass.
+        s.cab[6].setLowShelf (fsBase, k.shelfF, k.shelfDb);
 
         // Normalise the miked cab so 1 kHz matches the speaker-terminal level
         // (a lower tone at very low host rates, where 1 kHz is above Nyquist).
         const double fNorm = fsBase * 0.2 < 1000.0 ? fsBase * 0.2 : 1000.0;
         s.speaker.reset();
-        for (int i = 0; i < 6; ++i) s.cab[i].reset();
+        for (int i = 0; i < PowerStage::kCabBands; ++i) s.cab[i].reset();
         double prev = 0.0, peak = 0.0;
         const int nBase = (int) (0.12 * fsBase);
         const int F = Oversampler4x::kFactor;
@@ -283,7 +290,7 @@ void BassAmp::prepare (double sr)
                 prev = vc;
             }
             double y = last;
-            for (int b = 0; b < 6; ++b) y = s.cab[b].process (y);
+            for (int b = 0; b < PowerStage::kCabBands; ++b) y = s.cab[b].process (y);
             if (i > nBase / 2 && std::fabs (y) > peak) peak = std::fabs (y);
         }
         s.cabNorm = peak > 0.0 ? 1.0 / peak : 1.0;
@@ -296,7 +303,7 @@ void BassAmp::resetStage (PowerStage& s)
 {
     s.speaker.reset();
     s.paInHP.reset(); s.paFbHP.reset(); s.paGbwLP.reset();
-    for (int i = 0; i < 6; ++i) s.cab[i].reset();
+    for (int i = 0; i < PowerStage::kCabBands; ++i) s.cab[i].reset();
     s.osTerm.reset(); s.osSpk.reset();
     s.railPos = s.railNeg = kRailNoLoad;
     s.vOutPrev = 0.0; s.coneVPrev = 0.0;
@@ -546,7 +553,7 @@ void BassAmp::process (const float* in, float* out, int numSamples)
             if (! s.running) { yTerm[c] = yAc[c] = 0.0; continue; }
             yTerm[c] = s.osTerm.downsample (term[c]);
             double y = s.osSpk.downsample (spk[c]);
-            for (int b = 0; b < 6; ++b) y = s.cab[b].process (y);
+            for (int b = 0; b < PowerStage::kCabBands; ++b) y = s.cab[b].process (y);
             yAc[c] = y * s.cabNorm;
         }
         cabMix += ((cabSel == kCab4x10 ? 1.0 : 0.0) - cabMix) * a;

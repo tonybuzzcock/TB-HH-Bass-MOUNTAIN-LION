@@ -80,14 +80,15 @@ recall it; click the readout while a preset is in use to rename it. Presets are 
 | L1 | 3 µH | not marked |
 | `kPickupR` | 8K | bass pickup |
 | Cab models (`kCabs`) | 1x15: resonance 45 Hz, rolls off from 3 kHz; 4x10: resonance 68 Hz, more upper mids, rolls off from 5.2 kHz | to be tuned against the real cabs |
+| Cab low-end weight | 1x15: +6 dB shelf at 100 Hz; 4x10: +9 dB shelf at 110 Hz | voiced after the first test: weight from about 40 to 100 Hz without modern sub bass (below ~35 Hz the cabs still roll off). Miked path only; Speaker off stays as the circuit gives it, for your own IRs |
 | Effects input | left open | R2 10K goes to the effects input, which the plugin doesn't have |
 
 Notes from the drawing:
 - **Bass Boost is gentle** as drawn (about +1 to +3 dB, most in the low mids with Bass turned
   up), because the 100K Bass pot dominates R11/R21.
 - The power amp's low cut (R3 390R + C2 6µ8, the issue 3 change) and the tone stack's values
-  give the amp a leaner low end at flat settings than a modern bass amp; Bass and Bass Boost
-  bring it back.
+  give the amp a lean low end at the speaker terminals. With Speaker on, the cab voicing adds
+  weight from about 40 to 100 Hz (see the table above).
 
 ## Build and test
 

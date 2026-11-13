@@ -307,6 +307,26 @@ static void testSwitches()
         check (l15 > 1e-4 && l10 > 1e-4, "both cabs play");
         check (tilt10 > tilt15 + 4.0, "the 4x10 is brighter than the 1x15, the 1x15 deeper");
     }
+    // Low-end weight (miked, flat settings): 60-80 Hz close to the mids, but
+    // no modern sub bass (25 Hz well down)
+    for (int c = 0; c < 2; ++c)
+    {
+        double lv[4];
+        const double fq[4] = { 25.0, 60.0, 80.0, 400.0 };
+        for (int i = 0; i < 4; ++i)
+        {
+            BassAmp a;
+            a.setCab (c);
+            a.prepare (kSr);
+            lv[i] = 20.0 * std::log10 (rmsFrom (run (a, sine (fq[i], 0.005, 1.0)), kSr / 2) + 1e-30);
+        }
+        std::printf ("    %s miked, flat: 25 Hz %+.1f, 60 Hz %+.1f, 80 Hz %+.1f dB re 400 Hz\n",
+                     c ? "4x10" : "1x15", lv[0] - lv[3], lv[1] - lv[3], lv[2] - lv[3]);
+        char msg[128];
+        std::snprintf (msg, sizeof (msg), "%s: 80 Hz within %s dB of 400 Hz, 25 Hz more than 12 dB below 80 Hz",
+                       c ? "4x10" : "1x15", c ? "7" : "4");
+        check (lv[2] - lv[3] > (c ? -7.0 : -4.0) && lv[2] - lv[0] > 12.0, msg);
+    }
     // Switching while playing: no NaN, no runaway
     {
         BassAmp a;

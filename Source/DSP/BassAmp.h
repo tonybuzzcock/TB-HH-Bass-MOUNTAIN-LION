@@ -95,7 +95,8 @@ private:
         double railPos, railNeg, vOutPrev, peakAmps;
         bool climHit;
         double coneVPrev;
-        Biquad cab[6];
+        enum { kCabBands = 7 };
+        Biquad cab[kCabBands];
         double cabNorm;
         Oversampler4x osTerm, osSpk;
         bool running;            // the cab not selected sleeps once the crossfade is over
